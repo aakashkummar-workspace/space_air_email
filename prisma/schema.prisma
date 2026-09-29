@@ -1,0 +1,385 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Stores the OAuth refresh token for the Google (Gmail API) account used
+// to send outbound mail — set up once via a one-time authorization flow,
+// then used for every subsequent send without re-prompting the user. Only
+// one row is expected to exist at a time (the currently-connected sender).
+model GoogleMailAccount {
+  id           String   @id @default(cuid())
+  email        String   @unique // the mailbox that authorized sending, e.g. aakash.kummar@sirahdigital.in
+  refreshToken String // encrypted at rest is out of scope for this dev DB; treat the sqlite file itself as sensitive
+  connectedAt  DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// A client/project — mirrors one row-group in the Team Sheet (a project may
+// have several sub-jobs, e.g. Supreme Power's Admin/Factory/Mezzanine).
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  jobCode   String?
+  clientName String?
+  clientEmail String? // reminders send "To" this address automatically
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subJobs   SubJob[]
+  remarks   String?
+
+  status    ProjectStatus @default(ACTIVE)
+  currency  String @default("INR") // ISO 4217 code
+
+  monthlyTargets MonthlyTarget[]
+  retentionInstallments RetentionInstallment[]
+}
+
+// One retention installment for a project — the Team Sheet's "RETENTION"
+// column, generalized to support any number of installments instead of a
+// single amount + date. Total retention for a project = sum of its
+// installments; retention outstanding = amount - amountReceived, summed.
+model RetentionInstallment {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  label         String @default("Retention") // e.g. "Installment 1", "Final Retention"
+  amount        Float
+  dueDate       DateTime?
+  amountReceived Float @default(0)
+  remarks       String?
+
+  // When set, the reminder email is sent automatically once dueDate is
+  // reached (checked every few minutes by the background scheduler) instead
+  // of waiting for a manual "Send Email" click. autoSentAt guards against
+  // sending twice.
+  autoSendEmail Boolean   @default(false)
+  autoSentAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  emailThreads EmailThread[]
+}
+
+// A forward-looking billing/collection plan for one calendar month on a
+// project — mirrors the Team Sheet's "APR'26" / "MAY'26" / ... blocks, each
+// with a billing target, billing achieved, collection target, collection
+// achieved. One row per (project, month).
+model MonthlyTarget {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  month Int // 1-12
+  year  Int
+
+  billingTarget       Float @default(0)
+  billingAchieved     Float @default(0)
+  collectionTarget    Float @default(0)
+  collectionAchieved  Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, year, month])
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+}
+
+// One billable unit under a project (PO amount, selling value, billed so far).
+// For single-job projects there is exactly one SubJob.
+model SubJob {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name      String // e.g. "Admin Building", or same as project name if single-job
+
+  poSupplyAmt       Float @default(0)
+  poInstallationAmt Float @default(0)
+
+  sellingSupplyAmt   Float @default(0)
+  sellingErectionAmt Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  milestones  Milestone[]
+  collections Collection[]
+}
+
+// A payment-term milestone (e.g. 20% on delivery). Mirrors columns I–R
+// (payment terms % -> selling amount -> billed amount -> unbilled amount).
+model Milestone {
+  id       String @id @default(cuid())
+  subJobId String
+  subJob   SubJob @relation(fields: [subJobId], references: [id], onDelete: Cascade)
+
+  label        String // e.g. "Term 1", "Advance", "On Delivery"
+  percent      Float // stored as fraction, e.g. 0.2
+  sequence     Int    @default(0)
+
+  billedSupplyAmt       Float @default(0)
+  billedInstallationAmt Float @default(0)
+
+  dueDate  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reminderLogs ReminderLog[]
+}
+
+// A collection (payment received) recorded against a sub-job.
+model Collection {
+  id       String   @id @default(cuid())
+  subJobId String
+  subJob   SubJob   @relation(fields: [subJobId], references: [id], onDelete: Cascade)
+
+  amount      Float
+  receivedOn  DateTime @default(now())
+  reference   String?
+  notes       String?
+
+  createdAt DateTime @default(now())
+}
+
+// A configurable reminder stage, e.g. "3 days before due", "on due date",
+// "7 days overdue", "21 days overdue - escalation". Offsets are in days
+// relative to a milestone's dueDate (negative = before, positive = after).
+model ReminderStage {
+  id         String @id @default(cuid())
+  name       String
+  offsetDays Int // e.g. -3, 0, 7, 21
+  isEscalation Boolean @default(false)
+  active     Boolean @default(true)
+  sequence   Int    @default(0)
+
+  templateId String?
+  template   EmailTemplate? @relation(fields: [templateId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reminderLogs ReminderLog[]
+}
+
+// A reusable, editable email template with placeholder tokens like
+// {{clientName}}, {{projectName}}, {{balanceAmount}}, {{dueDate}}.
+model EmailTemplate {
+  id      String @id @default(cuid())
+  name    String
+  subject String
+  body    String // HTML or plain text with {{tokens}}
+
+  // Which token set this template is written for — MILESTONE templates use
+  // {{milestoneLabel}}/{{balanceAmount}}/{{dueDate}}/{{jobCode}}; RETENTION
+  // templates use {{retention_amount}}/{{retention_due_date}}/etc. Lets the
+  // retention composer only offer templates whose tokens it actually fills.
+  category EmailTemplateCategory @default(MILESTONE)
+
+  toRecipients  String @default("") // comma-separated
+  ccRecipients  String @default("")
+  bccRecipients String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reminderStages ReminderStage[]
+}
+
+enum EmailTemplateCategory {
+  MILESTONE
+  RETENTION
+}
+
+// A two-way email conversation attached to a retention installment (and,
+// in future, other billing entities). One thread per "topic" — e.g. one
+// retention installment's collection conversation — holding an ordered
+// list of EmailMessages (our sends + the client's replies).
+model EmailThread {
+  id        String   @id @default(cuid())
+
+  retentionInstallmentId String?
+  retentionInstallment   RetentionInstallment? @relation(fields: [retentionInstallmentId], references: [id], onDelete: Cascade)
+
+  subject   String
+  unread    Boolean  @default(false) // true when the latest message is an unseen client reply
+
+  gmailThreadId String? // Gmail's own thread id, when sent via Gmail — used to poll for replies
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages EmailMessage[]
+
+  @@index([retentionInstallmentId])
+  @@index([gmailThreadId])
+}
+
+// One message in an EmailThread — either an outbound send from us or an
+// inbound reply from the client, distinguished by `direction`.
+model EmailMessage {
+  id        String      @id @default(cuid())
+  threadId  String
+  thread    EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  direction EmailDirection
+
+  fromAddress String
+  toRecipients  String @default("") // comma-separated
+  ccRecipients  String @default("")
+  bccRecipients String @default("")
+
+  subject String
+  body    String // rendered HTML/text, tokens already substituted for outbound
+
+  status        EmailMessageStatus @default(SENT)
+  errorMessage  String?
+  providerId    String? // the email API's message id, for outbound; used to thread inbound replies back via In-Reply-To
+
+  attachments EmailAttachment[]
+
+  sentByUserId String?
+  sentByUser   User?   @relation(fields: [sentByUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([threadId])
+}
+
+enum EmailDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum EmailMessageStatus {
+  SENT
+  DELIVERED
+  FAILED
+  SIMULATED
+  RECEIVED // inbound messages use this instead of SENT/DELIVERED
+}
+
+// A file attached to an outbound email, or extracted from an inbound one.
+// Stored as a data URL for now (fine at this scale); swap for object
+// storage (S3, etc.) if attachment volume grows.
+model EmailAttachment {
+  id        String       @id @default(cuid())
+  messageId String
+  message   EmailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  filename    String
+  contentType String
+  sizeBytes   Int
+  dataUrl     String // "data:<mime>;base64,...."
+
+  createdAt DateTime @default(now())
+}
+
+// A record of a reminder that was (or would be) sent for a specific
+// milestone at a specific stage — powers "email/reminder history".
+model ReminderLog {
+  id          String   @id @default(cuid())
+  milestoneId String
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  reminderStageId String
+  reminderStage   ReminderStage @relation(fields: [reminderStageId], references: [id])
+
+  status    ReminderLogStatus
+  sentAt    DateTime @default(now())
+  errorMessage String?
+
+  toRecipients  String @default("")
+  ccRecipients  String @default("")
+  bccRecipients String @default("")
+  subject       String @default("")
+  body          String @default("")
+}
+
+enum ReminderLogStatus {
+  SENT
+  FAILED
+  SIMULATED
+}
+
+// --- Auth, audit, notifications --------------------------------------------
+
+enum UserRole {
+  ADMIN
+  FINANCE
+  PM
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(PM)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  sentEmails    EmailMessage[]
+}
+
+// One row per create/update/delete on billing-relevant data — who changed
+// what, when. entityType/entityId identify the record; summary is a short
+// human-readable description; diff is a JSON string of {field: [old, new]}.
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName   String // denormalized snapshot, survives user deletion
+  action     String // "create" | "update" | "delete"
+  entityType String // "Project" | "SubJob" | "Milestone" | "Collection" | ...
+  entityId   String
+  summary    String
+  diff       String? // JSON string
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+enum NotificationKind {
+  OVERDUE
+  ESCALATED
+  DUE_SOON
+  REMINDER_SENT
+  EMAIL_REPLY
+  SYSTEM
+}
+
+// In-app notification feed — separate from ReminderLog (which is the
+// client-facing email record); this is internal, for the bell icon.
+model Notification {
+  id        String            @id @default(cuid())
+  userId    String?
+  user      User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      NotificationKind
+  title     String
+  body      String
+  link      String? // e.g. /projects/xyz
+  read      Boolean           @default(false)
+  createdAt DateTime          @default(now())
+
+  @@index([userId, read])
+}

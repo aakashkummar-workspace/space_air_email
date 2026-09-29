@@ -1,0 +1,200 @@
+@import "tailwindcss";
+
+/* Warm Paper — cream ground, serif headings, thin hairline borders,
+   editorial feel. Fraunces for headings, Inter for body. */
+:root {
+  --bg: #faf8f2;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f5f0e3;
+  --border: #ecdfc4;
+  --border-strong: #ddc99f;
+
+  --ink: #332a1f;
+  --ink-muted: #7d735d;
+  --ink-faint: #a89b7f;
+
+  --accent: #8a4a2a;
+  --accent-ink: #ffffff;
+  --accent-soft: #f3e4d6;
+  --accent-soft-ink: #7a3f22;
+  --accent-glow: rgba(138, 74, 42, 0.1);
+
+  --brand-red: #a33a2a;
+  --brand-olive: #5c7a52;
+
+  --status-completed: #4a6b3f;
+  --status-completed-bg: #e6ecdc;
+  --status-upcoming: #7d735d;
+  --status-upcoming-bg: #f0ead8;
+  --status-due-soon: #96650f;
+  --status-due-soon-bg: #f7ecd3;
+  --status-due-today: #a1550f;
+  --status-due-today-bg: #f8e8d4;
+  --status-overdue: #a33a2a;
+  --status-overdue-bg: #f6e0da;
+  --status-escalated: #7a2334;
+  --status-escalated-bg: #f2dde2;
+
+  --bar-track: #f0e6d0;
+
+  --shadow-sm: 0 1px 2px rgba(51, 42, 31, 0.05);
+  --shadow-md: 0 6px 24px rgba(51, 42, 31, 0.08);
+  --shadow-glow: none;
+
+  color-scheme: light;
+}
+
+/* Dark variant — warm dark paper, same editorial spirit */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1c1712;
+    --bg-elevated: #241e17;
+    --surface: #26201a;
+    --surface-hover: #2e2720;
+    --border: #3a3024;
+    --border-strong: #4a3d2c;
+
+    --ink: #f2e9d8;
+    --ink-muted: #b8a98a;
+    --ink-faint: #7d7059;
+
+    --accent: #d99a6c;
+    --accent-ink: #241a10;
+    --accent-soft: #3a2a1c;
+    --accent-soft-ink: #e6b78a;
+    --accent-glow: rgba(217, 154, 108, 0.14);
+
+    --brand-red: #d9846c;
+    --brand-olive: #9ab88c;
+
+    --status-completed: #9ab88c;
+    --status-completed-bg: #253422;
+    --status-upcoming: #b8a98a;
+    --status-upcoming-bg: #332c22;
+    --status-due-soon: #e0b565;
+    --status-due-soon-bg: #362a16;
+    --status-due-today: #e0a05f;
+    --status-due-today-bg: #372815;
+    --status-overdue: #d9846c;
+    --status-overdue-bg: #3a2119;
+    --status-escalated: #d98a9c;
+    --status-escalated-bg: #351f26;
+
+    --bar-track: #332b21;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.4);
+    --shadow-glow: none;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1c1712;
+  --bg-elevated: #241e17;
+  --surface: #26201a;
+  --surface-hover: #2e2720;
+  --border: #3a3024;
+  --border-strong: #4a3d2c;
+
+  --ink: #f2e9d8;
+  --ink-muted: #b8a98a;
+  --ink-faint: #7d7059;
+
+  --accent: #d99a6c;
+  --accent-ink: #241a10;
+  --accent-soft: #3a2a1c;
+  --accent-soft-ink: #e6b78a;
+  --accent-glow: rgba(217, 154, 108, 0.14);
+
+  --brand-red: #d9846c;
+  --brand-olive: #9ab88c;
+
+  --status-completed: #9ab88c;
+  --status-completed-bg: #253422;
+  --status-upcoming: #b8a98a;
+  --status-upcoming-bg: #332c22;
+  --status-due-soon: #e0b565;
+  --status-due-soon-bg: #362a16;
+  --status-due-today: #e0a05f;
+  --status-due-today-bg: #372815;
+  --status-overdue: #d9846c;
+  --status-overdue-bg: #3a2119;
+  --status-escalated: #d98a9c;
+  --status-escalated-bg: #351f26;
+
+  --bar-track: #332b21;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.4);
+  --shadow-glow: none;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-fraunces);
+  --font-body: var(--font-inter);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-soft-ink);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
