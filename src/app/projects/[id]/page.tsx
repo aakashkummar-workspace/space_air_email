@@ -57,6 +57,10 @@ interface SubJob {
   milestones: Milestone[];
   collections: Collection[];
 }
+interface RetentionInstallmentSummary {
+  amount: number;
+  amountReceived: number;
+}
 interface Project {
   id: string;
   name: string;
@@ -67,6 +71,7 @@ interface Project {
   status: string;
   currency: string;
   subJobs: SubJob[];
+  retentionInstallments: RetentionInstallmentSummary[];
 }
 
 async function downloadStatement(project: Project) {
@@ -126,6 +131,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     },
     { po: 0, selling: 0, billed: 0, collected: 0, unbilled: 0, outstanding: 0 }
   );
+  // Outstanding is the single "total owed" figure — remaining contract
+  // balance (PO − Collected) plus any retention still unpaid, so it's not
+  // split across two numbers the reader has to add up themselves.
+  const retentionOutstanding = project.retentionInstallments.reduce(
+    (s, r) => s + Math.max(0, r.amount - r.amountReceived),
+    0
+  );
+  totals.outstanding += retentionOutstanding;
 
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-10 flex flex-col gap-6">
@@ -178,7 +191,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       <div className="flex flex-col gap-4">
         {project.subJobs.map((subJob) => (
-          <SubJobCard key={subJob.id} subJob={subJob} projectKey={key} currency={project.currency} />
+          <SubJobCard key={subJob.id} subJob={subJob} currency={project.currency} />
         ))}
       </div>
 
@@ -272,6 +285,11 @@ function ClientEmailField({ project, projectKey }: { project: Project; projectKe
       ) : (
         <span>No client email set — reminders won&apos;t have a recipient. Click to add one.</span>
       )}
+      {project.clientEmail && (
+        <span className="ml-1 font-semibold underline underline-offset-2" style={{ color: "var(--accent)" }}>
+          Edit
+        </span>
+      )}
     </button>
   );
 }
@@ -290,20 +308,10 @@ function Metric({ label, value, tone }: { label: string; value: string; tone?: "
   );
 }
 
-type SubJobTab = "overview" | "milestones" | "collections" | "timeline";
-
-function SubJobCard({ subJob, projectKey, currency }: { subJob: SubJob; projectKey: string; currency: string }) {
+function SubJobCard({ subJob, currency }: { subJob: SubJob; currency: string }) {
   const totals = subJobTotals(subJob);
   const billedPct = totals.base > 0 ? (totals.billed / totals.base) * 100 : 0;
   const collectedPct = totals.billed > 0 ? (totals.collected / totals.billed) * 100 : 0;
-  const [tab, setTab] = useState<SubJobTab>("overview");
-
-  const TABS: { key: SubJobTab; label: string; count?: number }[] = [
-    { key: "overview", label: "Overview" },
-    { key: "milestones", label: "Milestones", count: subJob.milestones.length },
-    { key: "collections", label: "Collections", count: subJob.collections.length },
-    { key: "timeline", label: "Timeline" },
-  ];
 
   return (
     <Card padded={false}>
@@ -319,32 +327,8 @@ function SubJobCard({ subJob, projectKey, currency }: { subJob: SubJob; projectK
         </div>
       </div>
 
-      <div className="flex items-center gap-1 px-3 pt-3 border-b overflow-x-auto" style={{ borderColor: "var(--border)" }}>
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className="relative px-3 py-2 text-[12.5px] font-medium whitespace-nowrap transition-colors"
-            style={{ color: tab === t.key ? "var(--ink)" : "var(--ink-faint)" }}
-          >
-            {t.label}
-            {t.count !== undefined && t.count > 0 && (
-              <span className="ml-1.5 text-[10.5px] tabular" style={{ color: "var(--ink-faint)" }}>
-                {t.count}
-              </span>
-            )}
-            {tab === t.key && (
-              <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full" style={{ background: "var(--accent)" }} />
-            )}
-          </button>
-        ))}
-      </div>
-
       <div className="p-5">
-        {tab === "overview" && <SubJobOverview subJob={subJob} totals={totals} billedPct={billedPct} collectedPct={collectedPct} currency={currency} />}
-        {tab === "milestones" && <SubJobMilestones subJob={subJob} projectKey={projectKey} currency={currency} />}
-        {tab === "collections" && <SubJobCollections subJob={subJob} projectKey={projectKey} currency={currency} />}
-        {tab === "timeline" && <SubJobTimeline subJob={subJob} currency={currency} />}
+        <SubJobOverview subJob={subJob} totals={totals} billedPct={billedPct} collectedPct={collectedPct} currency={currency} />
       </div>
     </Card>
   );
@@ -397,7 +381,7 @@ function SubJobOverview({
         <MiniStat label="PO Value" value={formatCompactMoney(totals.po, currency)} />
         <MiniStat label="Selling Value" value={hasSelling ? formatCompactMoney(totals.selling, currency) : "—"} />
         <MiniStat label="Unbilled" value={formatCompactMoney(totals.unbilled, currency)} tone={totals.unbilled > 0 ? "warn" : "good"} />
-        <MiniStat label="Outstanding" value={formatCompactMoney(totals.outstanding, currency)} tone={totals.outstanding > 0 ? "crit" : "good"} />
+        <MiniStat label="Contract Balance" value={formatCompactMoney(totals.outstanding, currency)} tone={totals.outstanding > 0 ? "crit" : "good"} />
       </div>
 
       <div className="overflow-x-auto">

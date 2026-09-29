@@ -36,7 +36,7 @@ function RetentionStatusPill({ dueDate, amount, amountReceived }: { dueDate: str
   const meta = RETENTION_STATUS_META[status];
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap tracking-wide"
+      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold whitespace-nowrap tracking-wide"
       style={{ background: `var(${meta.colorVar}-bg)`, color: `var(${meta.colorVar})` }}
     >
       {label}
@@ -98,41 +98,45 @@ export function RetentionSection({
   const totalOutstanding = Math.max(0, totalAmount - totalReceived);
 
   return (
-    <Card className="flex flex-col gap-3">
+    <Card className="flex flex-col gap-5">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h3 className="font-display text-[15px]">Retention</h3>
-          <p className="text-[11.5px] mt-0.5" style={{ color: "var(--ink-faint)" }}>
+          <h3 className="font-display text-[20px]">Retention</h3>
+          <p className="text-[13px] mt-1" style={{ color: "var(--ink-faint)" }}>
             Held-back amounts released on separate installment dates
           </p>
         </div>
-        <button onClick={() => setShowAdd((v) => !v)} className="text-[12px] font-medium" style={{ color: "var(--accent)" }}>
+        <button
+          onClick={() => setShowAdd((v) => !v)}
+          className="text-[13px] font-semibold px-3.5 py-2 rounded-lg transition-colors hover:bg-[var(--surface-hover)]"
+          style={{ color: "var(--accent)", background: "var(--bg)" }}
+        >
           + Add Installment
         </button>
       </div>
 
       {list.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-lg px-3 py-2.5" style={{ background: "var(--bg)" }}>
-            <div className="text-[10.5px] uppercase tracking-wide font-medium" style={{ color: "var(--ink-faint)" }}>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="rounded-xl px-4 py-4" style={{ background: "var(--bg)" }}>
+            <div className="text-[11px] uppercase tracking-wide font-medium" style={{ color: "var(--ink-faint)" }}>
               Total Retention
             </div>
-            <div className="mt-1 text-[13.5px] font-semibold tabular">{formatCompactMoney(totalAmount, currency)}</div>
+            <div className="mt-1.5 text-[1.5rem] font-semibold tabular">{formatCompactMoney(totalAmount, currency)}</div>
           </div>
-          <div className="rounded-lg px-3 py-2.5" style={{ background: "var(--bg)" }}>
-            <div className="text-[10.5px] uppercase tracking-wide font-medium" style={{ color: "var(--ink-faint)" }}>
+          <div className="rounded-xl px-4 py-4" style={{ background: "var(--bg)" }}>
+            <div className="text-[11px] uppercase tracking-wide font-medium" style={{ color: "var(--ink-faint)" }}>
               Received
             </div>
-            <div className="mt-1 text-[13.5px] font-semibold tabular" style={{ color: "var(--status-completed)" }}>
+            <div className="mt-1.5 text-[1.5rem] font-semibold tabular" style={{ color: "var(--status-completed)" }}>
               {formatCompactMoney(totalReceived, currency)}
             </div>
           </div>
-          <div className="rounded-lg px-3 py-2.5" style={{ background: "var(--bg)" }}>
-            <div className="text-[10.5px] uppercase tracking-wide font-medium" style={{ color: "var(--ink-faint)" }}>
+          <div className="rounded-xl px-4 py-4" style={{ background: "var(--bg)" }}>
+            <div className="text-[11px] uppercase tracking-wide font-medium" style={{ color: "var(--ink-faint)" }}>
               Outstanding
             </div>
             <div
-              className="mt-1 text-[13.5px] font-semibold tabular"
+              className="mt-1.5 text-[1.5rem] font-semibold tabular"
               style={{ color: totalOutstanding > 0 ? "var(--status-overdue)" : "var(--status-completed)" }}
             >
               {formatCompactMoney(totalOutstanding, currency)}
@@ -155,7 +159,7 @@ export function RetentionSection({
           No retention installments recorded yet.
         </p>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {list.map((r) => (
             <RetentionRow
               key={r.id}
@@ -204,7 +208,7 @@ function RetentionRow({
   outstandingAmount: number;
 }) {
   const [editing, setEditing] = useState(false);
-  const [showThread, setShowThread] = useState(false);
+  const [showThread, setShowThread] = useState(true);
   const [showComposer, setShowComposer] = useState(false);
   const outstanding = Math.max(0, installment.amount - installment.amountReceived);
   const pct = installment.amount > 0 ? Math.min(100, (installment.amountReceived / installment.amount) * 100) : 0;
@@ -222,14 +226,14 @@ function RetentionRow({
   }
 
   return (
-    <div className="rounded-lg" style={{ background: "var(--bg)" }}>
-      <div className="px-3.5 py-3 flex items-center justify-between gap-3 flex-wrap">
+    <div className="rounded-xl border" style={{ background: "var(--bg)", borderColor: "var(--border)" }}>
+      <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[13px] font-medium">{installment.label}</span>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="text-[16px] font-semibold">{installment.label}</span>
             <RetentionStatusPill dueDate={installment.dueDate} amount={installment.amount} amountReceived={installment.amountReceived} />
           </div>
-          <div className="text-[11.5px] mt-0.5" style={{ color: "var(--ink-faint)" }}>
+          <div className="text-[12.5px] mt-1" style={{ color: "var(--ink-faint)" }}>
             Due {formatDateTime(installment.dueDate)}
             {installment.remarks && ` · ${installment.remarks}`}
             {installment.autoSendEmail && (
@@ -240,38 +244,40 @@ function RetentionRow({
             )}
           </div>
           {installment.amountReceived > 0 && (
-            <div className="w-32 mt-1.5">
+            <div className="w-36 mt-2">
               <ProgressBar pct={pct} color="var(--status-completed)" />
             </div>
           )}
         </div>
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-6 shrink-0">
           <div className="text-right">
-            <div className="text-[13px] font-semibold tabular">{formatCompactMoney(installment.amount, currency)}</div>
+            <div className="text-[1.35rem] font-semibold tabular">{formatCompactMoney(installment.amount, currency)}</div>
             {installment.amountReceived > 0 && (
-              <div className="text-[11px] tabular" style={{ color: "var(--status-completed)" }}>
+              <div className="text-[12px] tabular" style={{ color: "var(--status-completed)" }}>
                 {formatCompactMoney(installment.amountReceived, currency)} received
               </div>
             )}
             {outstanding > 0 && (
-              <div className="text-[11px] tabular" style={{ color: "var(--status-overdue)" }}>
+              <div className="text-[12px] tabular" style={{ color: "var(--status-overdue)" }}>
                 {formatCompactMoney(outstanding, currency)} outstanding
               </div>
             )}
           </div>
-          <div className="flex gap-1.5">
-            <button onClick={() => setShowComposer(true)} className="text-[11.5px] font-medium" style={{ color: "var(--accent)" }}>
+          <div className="flex flex-col gap-2 items-end">
+            <button onClick={() => setShowComposer(true)} className="text-[12.5px] font-semibold" style={{ color: "var(--accent)" }}>
               Send Email
             </button>
-            <button onClick={() => setShowThread((v) => !v)} className="text-[11.5px] font-medium" style={{ color: "var(--ink-muted)" }}>
-              {showThread ? "Hide" : "History"}
-            </button>
-            <button onClick={() => setEditing(true)} className="text-[11.5px] font-medium" style={{ color: "var(--accent)" }}>
-              Edit
-            </button>
-            <button onClick={remove} className="text-[11.5px] font-medium" style={{ color: "var(--status-overdue)" }}>
-              Remove
-            </button>
+            <div className="flex gap-3">
+              <button onClick={() => setShowThread((v) => !v)} className="text-[12px] font-medium" style={{ color: "var(--ink-muted)" }}>
+                {showThread ? "Hide History" : "Show History"}
+              </button>
+              <button onClick={() => setEditing(true)} className="text-[12px] font-medium" style={{ color: "var(--accent)" }}>
+                Edit
+              </button>
+              <button onClick={remove} className="text-[12px] font-medium" style={{ color: "var(--status-overdue)" }}>
+                Remove
+              </button>
+            </div>
           </div>
         </div>
       </div>

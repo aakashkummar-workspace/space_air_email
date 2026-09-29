@@ -30,6 +30,7 @@ export async function GET() {
       subJobs: {
         include: { milestones: true, collections: true },
       },
+      retentionInstallments: true,
     },
   });
   return NextResponse.json(projects);

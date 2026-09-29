@@ -32,6 +32,7 @@ interface Project {
   status: "ACTIVE" | "ON_HOLD" | "COMPLETED";
   currency: string;
   subJobs: SubJob[];
+  retentionInstallments: { amount: number; amountReceived: number }[];
 }
 
 function projectTotals(project: Project) {
@@ -46,6 +47,12 @@ function projectTotals(project: Project) {
       return acc;
     },
     { po: 0, billed: 0, collected: 0, unbilled: 0, outstanding: 0 }
+  );
+  // Fold in unpaid retention so this list's Outstanding matches the total
+  // owed shown on the project detail page (PO − Collected + unpaid retention).
+  totals.outstanding += project.retentionInstallments.reduce(
+    (s, r) => s + Math.max(0, r.amount - r.amountReceived),
+    0
   );
 
   let worstStatus: "none" | "overdue" | "escalated" | "dueSoon" = "none";

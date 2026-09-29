@@ -194,6 +194,9 @@ export function subJobTotals(subJob: {
   const collected = subJob.collections.reduce((s, c) => s + c.amount, 0);
   const base = selling > 0 ? selling : po;
   const unbilled = Math.max(0, base - billed);
-  const outstanding = Math.max(0, billed - collected);
+  // Total remaining balance owed on the whole contract — not just what's
+  // been invoiced so far. Includes unbilled work, matching how the client
+  // wants "Outstanding" to read on the dashboard/project pages.
+  const outstanding = Math.max(0, base - collected);
   return { po, selling, billed, collected, unbilled, outstanding, base };
 }
