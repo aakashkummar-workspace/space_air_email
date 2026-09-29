@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 700,
     color: BRAND,
-    fontFamily: "Noto Sans", fontWeight: 700,
+    fontFamily: "Noto Sans",
   },
   tagline: {
     fontSize: 9.5,

@@ -35,7 +35,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const dateStr = new Date().toISOString().slice(0, 10);
   const filename = `statement-${slug || project.id}-${dateStr}.pdf`;
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
