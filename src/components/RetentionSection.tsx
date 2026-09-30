@@ -263,20 +263,18 @@ function RetentionRow({
               </div>
             )}
           </div>
-          <div className="flex flex-col gap-2 items-end">
-            <button onClick={() => setShowComposer(true)} className="text-[12.5px] font-semibold" style={{ color: "var(--accent)" }}>
-              Send Email
-            </button>
-            <div className="flex gap-3">
-              <button onClick={() => setShowThread((v) => !v)} className="text-[12px] font-medium" style={{ color: "var(--ink-muted)" }}>
+          <div className="flex flex-col gap-2 items-stretch">
+            <Button onClick={() => setShowComposer(true)}>Send Email</Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setShowThread((v) => !v)} className="text-[12px] px-3 py-1.5">
                 {showThread ? "Hide History" : "Show History"}
-              </button>
-              <button onClick={() => setEditing(true)} className="text-[12px] font-medium" style={{ color: "var(--accent)" }}>
+              </Button>
+              <Button variant="secondary" onClick={() => setEditing(true)} className="text-[12px] px-3 py-1.5">
                 Edit
-              </button>
-              <button onClick={remove} className="text-[12px] font-medium" style={{ color: "var(--status-overdue)" }}>
+              </Button>
+              <Button variant="danger" onClick={remove} className="text-[12px] px-3 py-1.5">
                 Remove
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -373,7 +371,7 @@ function AddRetentionForm({
           <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
           {suggestedAmount > 0 && (
             <p className="mt-1 text-[11px]" style={{ color: "var(--ink-faint)" }}>
-              Prefilled from outstanding balance — edit as needed.
+              Prefilled as PO Value − Billed — edit if the actual retention differs.
             </p>
           )}
         </div>

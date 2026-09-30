@@ -2,7 +2,8 @@
 
 import useSWR, { mutate } from "swr";
 import { useEffect, useState } from "react";
-import { formatDate } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
+import { Button } from "@/components/ui";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -33,12 +34,12 @@ interface EmailThread {
   messages: EmailMessage[];
 }
 
-const STATUS_META: Record<string, { label: string; colorVar: string }> = {
-  SENT: { label: "Sent", colorVar: "--status-completed" },
-  DELIVERED: { label: "Delivered", colorVar: "--status-completed" },
-  FAILED: { label: "Failed", colorVar: "--status-overdue" },
-  SIMULATED: { label: "Simulated", colorVar: "--status-due-soon" },
-  RECEIVED: { label: "Reply", colorVar: "--accent" },
+const STATUS_META: Record<string, { label: string; color: string; background: string }> = {
+  SENT: { label: "Sent", color: "var(--status-completed)", background: "var(--status-completed-bg)" },
+  DELIVERED: { label: "Delivered", color: "var(--status-completed)", background: "var(--status-completed-bg)" },
+  FAILED: { label: "Failed", color: "var(--status-overdue)", background: "var(--status-overdue-bg)" },
+  SIMULATED: { label: "Simulated", color: "var(--status-due-soon)", background: "var(--status-due-soon-bg)" },
+  RECEIVED: { label: "Reply", color: "var(--accent-soft-ink)", background: "var(--accent-soft)" },
 };
 
 export function EmailThreadView({ installmentId }: { installmentId: string }) {
@@ -75,14 +76,16 @@ export function EmailThreadView({ installmentId }: { installmentId: string }) {
     return <div className="h-16 rounded-xl animate-pulse" style={{ background: "var(--bg)" }} />;
   }
 
-  const allMessages = (threads ?? []).flatMap((t) => t.messages);
+  const allMessages = (threads ?? [])
+    .flatMap((t) => t.messages)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-end">
-        <button onClick={checkNow} disabled={checking} className="text-[11px] font-medium disabled:opacity-50" style={{ color: "var(--accent)" }}>
+        <Button variant="secondary" onClick={checkNow} disabled={checking} className="text-[12px] px-3 py-1.5">
           {checking ? "Checking…" : "Check for replies"}
-        </button>
+        </Button>
       </div>
       {allMessages.length === 0 ? (
         <p className="text-[12px] py-2" style={{ color: "var(--ink-faint)" }}>
@@ -98,6 +101,7 @@ export function EmailThreadView({ installmentId }: { installmentId: string }) {
 function MessageBubble({ message }: { message: EmailMessage }) {
   const isInbound = message.direction === "INBOUND";
   const meta = STATUS_META[message.status];
+  const [open, setOpen] = useState(true);
   return (
     <div
       className="rounded-lg px-3.5 py-3 border-l-4"
@@ -106,42 +110,64 @@ function MessageBubble({ message }: { message: EmailMessage }) {
         borderLeftColor: isInbound ? "var(--accent)" : "var(--border-strong)",
       }}
     >
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="min-w-0">
-          <span className="text-[12.5px] font-semibold">{isInbound ? message.fromAddress : "You"}</span>
-          <span className="text-[11px] ml-2" style={{ color: "var(--ink-faint)" }}>
-            {isInbound ? `to ${message.toRecipients}` : `to ${message.toRecipients}`}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 flex-wrap text-left"
+      >
+        <div className="min-w-0 flex items-center gap-1.5">
+          <span className="text-[11px] shrink-0" style={{ color: "var(--ink-faint)" }}>
+            {open ? "▾" : "▸"}
+          </span>
+          <span className="text-[12.5px] font-semibold">
+            {isInbound ? message.fromAddress : message.sentByUser?.name || "You"}
+          </span>
+          <span className="text-[11px] ml-1" style={{ color: "var(--ink-faint)" }}>
+            to {message.toRecipients}
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span
-            className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full"
-            style={{ background: `var(${meta.colorVar}-bg, transparent)`, color: `var(${meta.colorVar})` }}
+            className="text-[11px] font-bold px-2.5 py-1 rounded-full tracking-wide"
+            style={{ background: meta.background, color: meta.color }}
           >
             {meta.label}
           </span>
           <span className="text-[11px]" style={{ color: "var(--ink-faint)" }}>
-            {formatDate(message.createdAt)}
+            {formatDateTime(message.createdAt)}
           </span>
         </div>
-      </div>
+      </button>
       <div className="text-[12.5px] font-medium mt-1.5">{message.subject}</div>
-      <div className="text-[12px] mt-1 whitespace-pre-wrap" style={{ color: "var(--ink-muted)" }}>
-        {stripHtml(message.body).slice(0, 500)}
-      </div>
-      {message.attachments.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          {message.attachments.map((a) => (
-            <span key={a.id} className="text-[11px] px-2 py-1 rounded" style={{ background: "var(--surface)", color: "var(--ink-muted)" }}>
-              📎 {a.filename}
-            </span>
-          ))}
-        </div>
-      )}
-      {message.errorMessage && (
-        <div className="text-[11px] mt-1.5" style={{ color: "var(--status-overdue)" }}>
-          {message.errorMessage}
-        </div>
+      {open && (
+        <>
+          {message.ccRecipients && (
+            <div className="text-[11px] mt-0.5" style={{ color: "var(--ink-faint)" }}>
+              cc {message.ccRecipients}
+            </div>
+          )}
+          {!isInbound && message.sentByUser && (
+            <div className="text-[11px] mt-0.5" style={{ color: "var(--ink-faint)" }}>
+              Sent by {message.sentByUser.name} ({message.sentByUser.email})
+            </div>
+          )}
+          <div className="text-[12px] mt-1 whitespace-pre-wrap" style={{ color: "var(--ink-muted)" }}>
+            {stripHtml(message.body).slice(0, 500)}
+          </div>
+          {message.attachments.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {message.attachments.map((a) => (
+                <span key={a.id} className="text-[11px] px-2 py-1 rounded" style={{ background: "var(--surface)", color: "var(--ink-muted)" }}>
+                  📎 {a.filename}
+                </span>
+              ))}
+            </div>
+          )}
+          {message.errorMessage && (
+            <div className="text-[11px] mt-1.5" style={{ color: "var(--status-overdue)" }}>
+              {message.errorMessage}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     orderBy: { createdAt: "desc" },
     include: {
       messages: {
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
         include: { attachments: true, sentByUser: { select: { name: true, email: true } } },
       },
     },

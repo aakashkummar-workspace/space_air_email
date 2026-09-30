@@ -201,7 +201,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         projectId={project.id}
         currency={project.currency}
         clientEmail={project.clientEmail ?? ""}
-        suggestedAmount={totals.outstanding}
+        suggestedAmount={Math.max(0, totals.po - totals.billed)}
         projectName={project.name}
         clientName={project.clientName}
         jobCode={project.jobCode}
