@@ -26,6 +26,7 @@ interface SubJob {
 }
 interface Project {
   id: string;
+  slug: string;
   name: string;
   clientName: string | null;
   jobCode: string | null;
@@ -226,7 +227,7 @@ export default function ProjectsPage() {
                     onClick={(e) => e.stopPropagation()}
                     className="mt-1.5 w-3.5 h-3.5 shrink-0"
                   />
-                  <Link href={`/projects/${project.id}`} className="flex-1 min-w-0">
+                  <Link href={`/projects/${project.slug}`} className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                       <div className="min-w-0 flex items-center gap-3.5">
                         <div

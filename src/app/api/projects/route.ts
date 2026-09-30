@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
+import { uniqueProjectSlug } from "@/lib/slug";
 import { z } from "zod";
 
 // A comma-separated list so a project can have multiple email recipients
@@ -42,8 +43,9 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
+  const slug = await uniqueProjectSlug(parsed.data.name);
   const project = await prisma.project.create({
-    data: parsed.data,
+    data: { ...parsed.data, slug },
     include: { subJobs: { include: { milestones: true, collections: true } } },
   });
   await logAudit({

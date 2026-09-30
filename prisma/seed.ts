@@ -99,6 +99,7 @@ Sirah Digital`,
   const hcl = await prisma.project.create({
     data: {
       name: "HCL Capital Land",
+      slug: "hcl-capital-land",
       clientName: "HCL Capital Land",
       jobCode: null,
       remarks: "Retention held until 02-Feb-2027.",
@@ -145,6 +146,7 @@ Sirah Digital`,
   const supreme = await prisma.project.create({
     data: {
       name: "Supreme Power",
+      slug: "supreme-power",
       clientName: "Supreme Power",
       jobCode: "SAP/TN/25-26/P164",
       remarks:
@@ -222,6 +224,7 @@ Sirah Digital`,
   const chettinad = await prisma.project.create({
     data: {
       name: "Chettinad",
+      slug: "chettinad",
       clientName: "Chettinad",
       jobCode: "SAP/TN/25-26/P153",
       remarks: "Row note from source sheet: '50L' flagged against Term 1 (manual remark, meaning unclear — verify with team).",

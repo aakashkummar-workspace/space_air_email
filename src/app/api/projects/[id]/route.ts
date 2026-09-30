@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logAudit, computeDiff } from "@/lib/audit";
+import { uniqueProjectSlug } from "@/lib/slug";
 import { z } from "zod";
 
 // clientEmail stores a comma-separated list so a project can have multiple
@@ -26,8 +27,11 @@ const updateProjectSchema = z.object({
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = await prisma.project.findUnique({
-    where: { id },
+  // Accepts either the real id (old bookmarked links) or the URL slug
+  // (what the project page now links with) — cuid ids and slugs never
+  // collide in format, so a single OR lookup covers both safely.
+  const project = await prisma.project.findFirst({
+    where: { OR: [{ id }, { slug: id }] },
     include: {
       subJobs: {
         include: {
@@ -53,7 +57,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   const before = await prisma.project.findUnique({ where: { id } });
-  const project = await prisma.project.update({ where: { id }, data: parsed.data });
+  const data: typeof parsed.data & { slug?: string } = { ...parsed.data };
+  if (before && parsed.data.name && parsed.data.name !== before.name) {
+    data.slug = await uniqueProjectSlug(parsed.data.name, id);
+  }
+  const project = await prisma.project.update({ where: { id }, data });
 
   if (before) {
     const diff = computeDiff(before, parsed.data);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { uniqueProjectSlug } from "@/lib/slug";
 import { z } from "zod";
 
 const milestoneSchema = z.object({
@@ -101,9 +102,11 @@ export async function POST(req: NextRequest) {
       }
       results.push({ name: p.name, action: "merged", subJobs: p.subJobs.length, milestones: milestoneCount });
     } else {
+      const slug = await uniqueProjectSlug(p.name);
       const created = await prisma.project.create({
         data: {
           name: p.name,
+          slug,
           jobCode: p.jobCode,
           clientName: p.clientName,
           remarks: p.remarks,

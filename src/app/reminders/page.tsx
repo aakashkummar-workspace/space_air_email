@@ -26,7 +26,7 @@ interface ReminderLog {
   reminderStage: { name: string; isEscalation: boolean };
   milestone: {
     label: string;
-    subJob: { name: string; project: { id: string; name: string } };
+    subJob: { name: string; project: { id: string; slug: string; name: string } };
   };
 }
 
@@ -125,7 +125,7 @@ function ReminderLogRow({ log }: { log: ReminderLog }) {
       <button onClick={() => setOpen((v) => !v)} className="w-full text-left p-4 flex items-center justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <div className="text-[13px] font-medium truncate">
-            <Link href={`/projects/${log.milestone.subJob.project.id}`} className="hover:underline" style={{ color: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
+            <Link href={`/projects/${log.milestone.subJob.project.slug}`} className="hover:underline" style={{ color: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
               {log.milestone.subJob.project.name}
             </Link>{" "}
             — {log.milestone.subJob.name} · {log.milestone.label}

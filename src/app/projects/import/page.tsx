@@ -86,10 +86,18 @@ export default function ImportPage() {
         <Link href="/projects" className="text-[12.5px] font-medium hover:opacity-80 transition-opacity" style={{ color: "var(--accent)" }}>
           ← All Projects
         </Link>
-        <h1 className="text-[26px] font-semibold tracking-tight mt-2">Import from Excel</h1>
-        <p className="text-[13.5px] mt-1.5" style={{ color: "var(--ink-muted)" }}>
-          Upload a spreadsheet and map its columns — works with the Team Sheet format or your own layout.
-        </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap mt-2">
+          <div>
+            <h1 className="text-[26px] font-semibold tracking-tight">Import from Excel</h1>
+            <p className="text-[13.5px] mt-1.5" style={{ color: "var(--ink-muted)" }}>
+              Upload a spreadsheet and map its columns — works with the Team Sheet format, the blank
+              template below, or your own layout.
+            </p>
+          </div>
+          <a href="/api/import/template" download>
+            <Button variant="secondary">⭳ Download blank template</Button>
+          </a>
+        </div>
       </div>
 
       <StepIndicator step={step} />

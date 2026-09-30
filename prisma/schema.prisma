@@ -26,6 +26,7 @@ model GoogleMailAccount {
 // have several sub-jobs, e.g. Supreme Power's Admin/Factory/Mezzanine).
 model Project {
   id        String   @id @default(cuid())
+  slug      String   @unique // URL-friendly identifier derived from name, e.g. "crm-1" — see src/lib/slug.ts
   name      String
   jobCode   String?
   clientName String?
